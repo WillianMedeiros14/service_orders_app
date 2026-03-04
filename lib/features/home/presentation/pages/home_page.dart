@@ -74,18 +74,26 @@ class _HomePageState extends State<HomePage> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Wrap(
-                  spacing: 16,
-                  runSpacing: 4,
-                  children: orderServiceStore.state.map((order) {
-                    return ServiceOrderCardWidget(
-                      orderId: order.id,
-                      status: order.status,
-                      title: order.title.isNotEmpty
-                          ? order.title
-                          : order.problemDescription,
-                    );
-                  }).toList(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight:
+                        MediaQuery.of(context).size.height -
+                        kToolbarHeight -
+                        200,
+                  ),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 4,
+                    children: orderServiceStore.state.map((order) {
+                      return ServiceOrderCardWidget(
+                        orderId: order.id,
+                        status: order.status,
+                        title: order.title.isNotEmpty
+                            ? order.title
+                            : order.problemDescription,
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             );
