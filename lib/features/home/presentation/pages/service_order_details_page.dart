@@ -292,6 +292,8 @@ class _ServiceOrderDetailsPageState extends State<ServiceOrderDetailsPage> {
 
   Widget _photo(String url) {
     return Container(
+      height: 400,
+      width: double.infinity,
       margin: const EdgeInsets.only(top: 8),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),

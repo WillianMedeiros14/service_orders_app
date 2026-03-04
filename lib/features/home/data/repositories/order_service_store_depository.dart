@@ -63,4 +63,25 @@ class OrderRepository implements IOrderServiceRepository {
       data: data.toJson(),
     );
   }
+
+  @override
+  Future<String> uploadServiceOrderPhoto({
+    required String orderId,
+    required String filePath,
+  }) async {
+    final formData = FormData.fromMap({
+      'photo': await MultipartFile.fromFile(filePath, filename: 'photo.jpg'),
+    });
+
+    final response = await client.uploadServiceOrderPhoto(
+      endpoint: '/service-orders/$orderId/photo',
+      data: formData,
+    );
+
+    if (response.statusCode == 200) {
+      return response.data['photoUrl'];
+    } else {
+      throw Exception('Erro ao enviar foto');
+    }
+  }
 }

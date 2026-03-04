@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:service_orders_app/features/home/data/model/service_order_details_model.dart';
 import 'package:service_orders_app/features/home/data/model/service_order_update_model%20.dart';
+import 'package:service_orders_app/features/home/data/repositories/i_order_service_store_depository.dart';
 import 'package:service_orders_app/features/home/data/repositories/order_service_store_depository.dart';
 import 'package:service_orders_app/features/home/presentation/store/order_service_details_by_id_store.dart';
 import 'package:service_orders_app/features/home/presentation/store/update_order_service_by_id_store.dart';
+import 'package:service_orders_app/features/home/presentation/widget/service_order_photo_widget.dart';
+
 import 'package:service_orders_app/shared/data/dio/dio_client_http.dart';
+import 'package:service_orders_app/shared/services/camera_service.dart';
 import 'package:service_orders_app/shared/widgets/button_widget.dart';
 import 'package:service_orders_app/shared/widgets/header_widget.dart';
 import 'package:service_orders_app/shared/widgets/show_app_snack_bar_message.dart';
@@ -25,7 +30,13 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
   late final UpdateOrderServiceByStore storeUpdate;
   late String status = "";
 
+  final IOrderServiceRepository orderRepository = OrderRepository(
+    client: DioClientHttp(),
+  );
+
   final Map<String, bool> checklistState = {};
+  XFile? _image;
+  bool _isLoadingOrder = false;
 
   @override
   void initState() {
@@ -57,24 +68,7 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
   void _updateStatus() {
     if (store.state == null) return;
 
-    final state = store.state!;
-    final List<ChecklistItemUpdateModel> checklistItems = state.checklistItems
-        .map(
-          (item) => ChecklistItemUpdateModel(
-            serviceOrderChecklistId: item.checklistItem.id,
-            isChecked: checklistState[item.checklistItem.description] ?? false,
-          ),
-        )
-        .toList();
-
-    final bool allChecked = checklistItems.every((item) => item.isChecked);
-    final bool hasDescription = _observationController.text.trim().isNotEmpty;
-    final bool hasPhoto =
-        state.photoPath != null && state.photoPath!.isNotEmpty;
-
-    final newStatus = (allChecked && hasDescription && hasPhoto)
-        ? "FINISHED"
-        : "IN_PROGRESS";
+    final newStatus = canFinishOrder(store.state!) ? "FINISHED" : "IN_PROGRESS";
 
     if (status != newStatus) {
       setState(() {
@@ -85,7 +79,9 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
 
   void _handleSendData(BuildContext context) async {
     if (store.state == null) return;
-
+    setState(() {
+      _isLoadingOrder = true;
+    });
     final state = store.state!;
 
     final List<ChecklistItemUpdateModel> checklistItems = state.checklistItems
@@ -97,14 +93,19 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
         )
         .toList();
 
-    final bool allChecked = checklistItems.every((item) => item.isChecked);
     final bool hasDescription = _observationController.text.trim().isNotEmpty;
-    final bool hasPhoto =
-        state.photoPath != null && state.photoPath!.isNotEmpty;
+    final bool hasLocalPhoto = _image != null;
 
-    final newStatus = (allChecked && hasDescription && hasPhoto)
-        ? "FINISHED"
-        : "IN_PROGRESS";
+    String? photoUrl;
+
+    if (hasLocalPhoto) {
+      photoUrl = await orderRepository.uploadServiceOrderPhoto(
+        orderId: state.id,
+        filePath: _image!.path,
+      );
+    }
+
+    final newStatus = canFinishOrder(state) ? "FINISHED" : "IN_PROGRESS";
 
     if (status != newStatus) {
       setState(() {
@@ -114,7 +115,7 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
 
     final ServiceOrderUpdateModel dataUpdate = ServiceOrderUpdateModel(
       executionDescription: hasDescription ? _observationController.text : null,
-      photoPath: hasPhoto ? state.photoPath : null,
+      photoPath: photoUrl ?? state.photoPath,
       status: status,
       checklistItems: checklistItems,
     );
@@ -123,6 +124,10 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
       orderId: state.id,
       data: dataUpdate,
     );
+
+    setState(() {
+      _isLoadingOrder = false;
+    });
 
     if (result.statusCode == 200) {
       showAppSnackBarMessage(
@@ -140,6 +145,39 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
     }
   }
 
+  bool canFinishOrder(ServiceOrderDetailsModel state) {
+    final List<ChecklistItemUpdateModel> checklistItems = state.checklistItems
+        .map(
+          (item) => ChecklistItemUpdateModel(
+            serviceOrderChecklistId: item.checklistItem.id,
+            isChecked: checklistState[item.checklistItem.description] ?? false,
+          ),
+        )
+        .toList();
+
+    final bool allChecked = checklistItems.every((item) => item.isChecked);
+    final bool hasDescription = _observationController.text.trim().isNotEmpty;
+
+    final bool hasPhoto =
+        (_image != null) ||
+        (state.photoPath != null && state.photoPath!.isNotEmpty);
+
+    return allChecked && hasDescription && hasPhoto;
+  }
+
+  Future<void> _getImage() async {
+    try {
+      _image = await openCamera();
+      setState(() {});
+    } catch (_) {
+      showAppSnackBarMessage(
+        context,
+        "Erro ao carregar foto",
+        ShowAppSnackBarMessageType.error,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -149,7 +187,7 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: HeaderWidget(
-          title: "Alterar ordem de serviço",
+          title: "Serviço em execução",
           showBackButton: true,
         ),
         body: Observer(
@@ -171,46 +209,26 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (order.photoPath != null && order.photoPath!.isNotEmpty)
-                    Column(
-                      children: [
-                        const Text(
-                          "Evidência da Execução",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Evidência da Execução",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.start,
+                      ),
 
-                        const SizedBox(height: 12),
-
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                order.photoPath!,
-                                height: 200,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                bottom: 10,
-                                right: 10,
-                                child: Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(6),
-                                  child: const Icon(Icons.zoom_in),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 12),
+                      ServiceOrderPhotoWidget(
+                        order: order,
+                        image: _image,
+                        onTakePhoto: _getImage,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   const Text(
                     "Resumo do Checklist",
@@ -239,7 +257,7 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    "Observação final",
+                    "Descrição da Execução",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
@@ -282,7 +300,7 @@ class _FinalizeServiceOrderPageState extends State<FinalizeServiceOrderPage> {
                         title: status == "FINISHED" ? "Finalizar" : "Salvar",
                         icon: Icons.check_circle_outline,
                         type: ButtonWidgetType.primary,
-                        isLoading: storeUpdate.isLoading,
+                        isLoading: _isLoadingOrder,
                         onPressed: () => _handleSendData(context),
                       );
                     },

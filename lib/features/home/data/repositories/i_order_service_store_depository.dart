@@ -12,4 +12,8 @@ abstract class IOrderServiceRepository {
     required String orderId,
     required ServiceOrderUpdateModel data,
   });
+  Future<String> uploadServiceOrderPhoto({
+    required String orderId,
+    required String filePath,
+  });
 }

@@ -11,6 +11,10 @@ abstract class IHttpCharacterClient {
     required String endpoint,
     required Map<String, dynamic> data,
   });
+  Future uploadServiceOrderPhoto({
+    required String endpoint,
+    required FormData data,
+  });
 }
 
 class DioClientHttp implements IHttpCharacterClient {
@@ -86,5 +90,26 @@ class DioClientHttp implements IHttpCharacterClient {
   @override
   Future<Response> getServiceOrderById({required String endpoint}) async {
     return dio.get(endpoint);
+  }
+
+  @override
+  Future<Response?> uploadServiceOrderPhoto({
+    required String endpoint,
+    required FormData data,
+  }) async {
+    try {
+      final response = await dio.post(
+        endpoint,
+        data: data,
+        options: Options(
+          headers: {'enctype': 'multipart/form-data'},
+          contentType: 'application/json',
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      print({e});
+      return _handleDioError(e);
+    }
   }
 }
