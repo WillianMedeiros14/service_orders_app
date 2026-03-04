@@ -68,19 +68,25 @@ class _HomePageState extends State<HomePage> {
               );
             }
 
-            return SingleChildScrollView(
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 4,
-                children: orderServiceStore.state.map((order) {
-                  return ServiceOrderCardWidget(
-                    orderId: order.id,
-                    status: order.status,
-                    title: order.title.isNotEmpty
-                        ? order.title
-                        : order.problemDescription,
-                  );
-                }).toList(),
+            return RefreshIndicator(
+              onRefresh: () async {
+                await orderServiceStore.getServiceOrders();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 4,
+                  children: orderServiceStore.state.map((order) {
+                    return ServiceOrderCardWidget(
+                      orderId: order.id,
+                      status: order.status,
+                      title: order.title.isNotEmpty
+                          ? order.title
+                          : order.problemDescription,
+                    );
+                  }).toList(),
+                ),
               ),
             );
           },
