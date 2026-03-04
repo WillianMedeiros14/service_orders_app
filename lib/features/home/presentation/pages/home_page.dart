@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:service_orders_app/features/home/data/repositories/order_service_store_depository.dart';
+import 'package:provider/provider.dart';
 import 'package:service_orders_app/features/home/presentation/store/order_service_store.dart';
 import 'package:service_orders_app/features/home/presentation/widget/service_order_card_widget.dart';
-import 'package:service_orders_app/shared/data/dio/dio_client_http.dart';
 import 'package:service_orders_app/shared/theme/app_colors.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,13 +13,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final OrderServiceStore orderServiceStore = OrderServiceStore(
-    repository: OrderRepository(client: DioClientHttp()),
-  );
+  late OrderServiceStore orderServiceStore;
 
   @override
   void initState() {
     super.initState();
+    orderServiceStore = context.read<OrderServiceStore>();
+
     orderServiceStore.getServiceOrders();
   }
 
@@ -50,7 +49,8 @@ class _HomePageState extends State<HomePage> {
         ),
         child: Observer(
           builder: (_) {
-            if (orderServiceStore.isLoading) {
+            if (orderServiceStore.isLoading &&
+                orderServiceStore.state.isEmpty) {
               return Center(
                 child: Padding(
                   padding: EdgeInsets.only(top: 100),
