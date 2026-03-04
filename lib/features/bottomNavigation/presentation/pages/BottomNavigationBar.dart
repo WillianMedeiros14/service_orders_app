@@ -23,52 +23,55 @@ class _BottomNavigationScreenState extends State<BottomNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Stack(
-        children: [
-          _pages[_selectedIndex],
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(60.0),
-                  topRight: Radius.circular(60.0),
-                  bottomLeft: Radius.circular(60.0),
-                  bottomRight: Radius.circular(60.0),
-                ),
-                child: BottomNavigationBar(
-                  backgroundColor: Colors.white,
-                  currentIndex: _selectedIndex,
-                  onTap: _onItemTapped,
-                  iconSize: 40,
-                  showSelectedLabels: true,
-                  showUnselectedLabels: true,
-
-                  selectedItemColor: AppColors.primary,
-                  unselectedItemColor: const Color.fromARGB(96, 54, 53, 53),
-
-                  selectedLabelStyle: TextStyle(color: AppColors.primary),
-                  unselectedLabelStyle: const TextStyle(
-                    color: Color.fromARGB(96, 54, 53, 53),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            _pages[_selectedIndex],
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(60.0),
+                    topRight: Radius.circular(60.0),
+                    bottomLeft: Radius.circular(60.0),
+                    bottomRight: Radius.circular(60.0),
                   ),
+                  child: BottomNavigationBar(
+                    backgroundColor: Colors.white,
+                    currentIndex: _selectedIndex,
+                    onTap: _onItemTapped,
+                    iconSize: 40,
+                    showSelectedLabels: true,
+                    showUnselectedLabels: true,
 
-                  items: const <BottomNavigationBarItem>[
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.home),
-                      label: 'Home',
+                    selectedItemColor: AppColors.primary,
+                    unselectedItemColor: const Color.fromARGB(96, 54, 53, 53),
+
+                    selectedLabelStyle: TextStyle(color: AppColors.primary),
+                    unselectedLabelStyle: const TextStyle(
+                      color: Color.fromARGB(96, 54, 53, 53),
                     ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.person),
-                      label: 'Perfil',
-                    ),
-                  ],
+
+                    items: const <BottomNavigationBarItem>[
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.person),
+                        label: 'Perfil',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
